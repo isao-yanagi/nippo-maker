@@ -79,7 +79,10 @@
 
       <div class="buttons">
         <button id="createBtn">7日分を作成</button>
+        <button class="secondary" id="exportSettingsBtn" type="button">初期設定をエクスポート</button>
+        <button class="secondary" id="importSettingsBtn" type="button">初期設定をインポート</button>
         <button class="ghost" id="resetBtn">初期値に戻す</button>
+        <input class="visually-hidden" id="importSettingsFile" type="file" accept="application/json,.json" />
       </div>
       <div class="note">
         残業時間は「当日の終了−開始−休憩時間」から「基本終了−基本開始−初期休憩時間」を引いて自動計算します。例：基本 09:00〜17:30、休憩1h00m、当日 09:00〜18:45 なら 1h15m。丸めは行いません。<br>

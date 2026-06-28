@@ -72,6 +72,13 @@ const $ = (id) => document.getElementById(id);
     function getSettings() {
       return Object.fromEntries(settingFields.map(id => [id, $(id).value]));
     }
+    function applySettings(settings) {
+      for (const id of settingFields) {
+        if (Object.prototype.hasOwnProperty.call(settings, id)) {
+          $(id).value = String(settings[id] ?? "");
+        }
+      }
+    }
     function saveState() {
       localStorage.setItem("nippo-web-state-v11", JSON.stringify({ settings: getSettings(), daysData }));
     }
@@ -249,6 +256,69 @@ const $ = (id) => document.getElementById(id);
       return ok;
     }
 
+    function exportSettings() {
+      const data = {
+        app: "nippo-maker",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        settings: getSettings()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const date = toLocalDateInputValue(new Date());
+      a.href = url;
+      a.download = `nippo-settings-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("初期設定をエクスポートしました");
+    }
+
+    function normalizeImportedSettings(data) {
+      const source = data && typeof data === "object" && data.settings && typeof data.settings === "object" ? data.settings : data;
+      if (!source || typeof source !== "object") return null;
+      const settings = {};
+      for (const id of settingFields) {
+        if (Object.prototype.hasOwnProperty.call(source, id)) {
+          settings[id] = source[id];
+        }
+      }
+      return Object.keys(settings).length ? settings : null;
+    }
+
+    function importSettingsFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        try {
+          const settings = normalizeImportedSettings(JSON.parse(reader.result));
+          if (!settings) {
+            showToast("初期設定ファイルを読み込めませんでした");
+            return;
+          }
+          applySettings(settings);
+          daysData = daysData.map(day => ({
+            ...day,
+            overtimeMinutes: calcOvertime(day.startTime, day.endTime, day.breakTime)
+          }));
+          renderDays();
+          saveState();
+          showToast("初期設定をインポートしました");
+        } catch (_) {
+          showToast("初期設定ファイルを読み込めませんでした");
+        } finally {
+          $("importSettingsFile").value = "";
+        }
+      });
+      reader.addEventListener("error", () => {
+        $("importSettingsFile").value = "";
+        showToast("初期設定ファイルを読み込めませんでした");
+      });
+      reader.readAsText(file);
+    }
+
     async function copyText(mode = "all", dayIndex = null) {
       const text = buildText(mode, dayIndex);
       saveState();
@@ -321,6 +391,9 @@ const $ = (id) => document.getElementById(id);
     $("drawerOverlay").addEventListener("click", closeSettings);
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSettings(); });
     $("createBtn").addEventListener("click", () => { createDaysData(true); closeSettings(); });
+    $("exportSettingsBtn").addEventListener("click", exportSettings);
+    $("importSettingsBtn").addEventListener("click", () => $("importSettingsFile").click());
+    $("importSettingsFile").addEventListener("change", (e) => importSettingsFile(e.target.files[0]));
     $("copyWeekdaysBtn").addEventListener("click", () => copyText("weekdays"));
     $("copyAllBtn").addEventListener("click", () => copyText("all"));
     $("resetBtn").addEventListener("click", resetForm);
