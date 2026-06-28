@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>祝日一覧</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-text">
+      <h1>祝日一覧</h1>
+      <div class="sub">内閣府の祝日CSVから一覧を作成し、日報生成画面で使うJSONとして保存します。</div>
+    </div>
+    <div class="header-actions">
+      <a class="link-button secondary" href="index.html">日報生成へ</a>
+    </div>
+  </header>
+
+  <main class="single-main">
+    <section class="result holiday-panel">
+      <div class="result-head">
+        <h2 class="result-title">祝日データ</h2>
+        <div class="buttons holiday-actions">
+          <button id="fetchHolidaysBtn" type="button">内閣府から取得</button>
+          <a class="link-button secondary" href="https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv" target="_blank" rel="noreferrer">公式CSVを開く</a>
+          <button class="secondary" id="importCsvBtn" type="button">CSV選択</button>
+          <button class="secondary" id="saveHolidaysBtn" type="button" disabled>JSON保存</button>
+          <button class="secondary" id="downloadHolidaysBtn" type="button" disabled>ダウンロード</button>
+          <input class="visually-hidden" id="holidayCsvFile" type="file" accept=".csv,text/csv" />
+        </div>
+      </div>
+
+      <div class="holiday-status" id="holidayStatus">未取得</div>
+      <div class="holiday-table-wrap">
+        <table class="holiday-table">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>祝日名</th>
+            </tr>
+          </thead>
+          <tbody id="holidayRows">
+            <tr><td colspan="2">内閣府から取得してください。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">保存しました</div>
+  <script src="js/holidays.js?v=20260628-1"></script>
+</body>
+</html>

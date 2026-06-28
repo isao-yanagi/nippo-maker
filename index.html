@@ -12,7 +12,9 @@
       <h1>日報生成 HTML版 V1</h1>
       <div class="sub">生成結果を7日分の編集項目として表示し、入力値をブラウザに自動保存します。開始・終了時刻と休憩時間から残業時間を時分形式で自動計算します。</div>
     </div>
-    <button class="menu-btn" id="openSettingsBtn" type="button" aria-controls="settingsPanel" aria-expanded="false">☰ 初期設定</button>
+    <div class="header-actions">
+      <button class="menu-btn" id="openSettingsBtn" type="button" aria-controls="settingsPanel" aria-expanded="false">☰ 初期設定</button>
+    </div>
   </header>
 
   <div class="drawer-overlay" id="drawerOverlay"></div>
@@ -95,10 +97,6 @@
     <section class="result">
       <div class="result-head">
         <h2 class="result-title">生成結果（編集可能）</h2>
-        <div class="buttons copy-buttons result-copy-buttons">
-          <button class="secondary" id="copyWeekdaysBtn">copy：月〜金</button>
-          <button class="secondary" id="copyAllBtn">copy：月〜日</button>
-        </div>
       </div>
       <div id="days" class="days result-days"></div>
     </section>

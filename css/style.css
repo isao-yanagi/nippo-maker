@@ -7,6 +7,7 @@
     header { padding:24px 28px 12px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
     h1 { margin:0 0 6px; font-size:24px; }
     .header-text { min-width:0; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
     .menu-btn { display:none; white-space:nowrap; align-items:center; gap:8px; }
     .drawer-close { display:none; }
     .drawer-overlay { display:none; }
@@ -30,17 +31,23 @@
     .settings-file-label { color:var(--muted); font-size:12px; font-weight:700; margin-top:4px; }
     .copy-buttons { width:auto; display:flex; flex-wrap:nowrap; gap:8px; justify-content:flex-end; }
     .copy-buttons button { flex:0 0 auto; min-height:38px; padding:8px 12px; font-size:13px; white-space:nowrap; }
-    button { border:0; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; background:var(--accent); color:white; }
+    button, .link-button { border:0; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; background:var(--accent); color:white; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-height:40px; }
     button:hover { background:var(--accent2); }
-    button.secondary { background:var(--soft); color:#1e3a8a; }
-    button.secondary:hover { background:#dbeafe; }
+    button.secondary, .link-button.secondary { background:var(--soft); color:#1e3a8a; }
+    button.secondary:hover, .link-button.secondary:hover { background:#dbeafe; }
+    button:disabled { cursor:not-allowed; opacity:.55; }
     button.ghost { background:#f3f4f6; color:#374151; }
     button.ghost:hover { background:#e5e7eb; }
     .note { margin-top:10px; color:var(--muted); font-size:12px; line-height:1.6; }
     .days { display:flex; flex-direction:column; gap:14px; }
     .day-card { border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff; }
+    .day-card-saturday { background:#eff6ff; border-color:#bfdbfe; }
+    .day-card-sunday, .day-card-holiday { background:#fff1f2; border-color:#fecdd3; }
     .day-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:#f9fafb; border-bottom:1px solid var(--line); }
+    .day-card-saturday .day-head { background:#dbeafe; border-bottom-color:#bfdbfe; }
+    .day-card-sunday .day-head, .day-card-holiday .day-head { background:#ffe4e6; border-bottom-color:#fecdd3; }
     .day-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .day-copy-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:nowrap; }
     .calculated-value { min-height:40px; display:flex; align-items:center; border:1px solid #d1d5db; border-radius:10px; padding:9px 10px; background:#f9fafb; font-weight:700; color:#065f46; }
     .day-body { padding:14px; display:grid; grid-template-columns: repeat(12, 1fr); gap:12px; }
     .col-2 { grid-column: span 2; }
@@ -99,8 +106,10 @@
       .copy-buttons { width:100%; flex-direction:row; flex-wrap:nowrap; justify-content:flex-end; gap:8px; }
       .copy-buttons button { flex:1 1 0; width:50%; min-width:0; min-height:38px; padding:8px 10px; font-size:13px; }
       .day-card { border-radius:12px; }
-      .day-head { padding:10px 12px; }
+      .day-head { padding:10px 12px; align-items:flex-start; }
       .day-title h3 { font-size:16px; }
+      .day-copy-actions { flex-wrap:wrap; }
+      .day-copy-actions button { flex:0 0 auto; }
       .day-body { padding:12px; grid-template-columns:1fr 1fr; gap:10px; }
       .col-2,.col-3,.col-4,.col-6,.col-12 { grid-column:1 / -1; }
       .day-body .col-2:nth-child(1),
@@ -127,3 +136,13 @@
     .result-title { margin:0; }
     .result-copy-buttons { margin-top:0; }
     .result-days { margin-top:14px; }
+    .single-main { display:block; max-width:1040px; margin:0 auto; }
+    .holiday-panel { width:100%; }
+    .holiday-actions { margin-top:0; }
+    .holiday-status { margin-top:14px; color:var(--muted); font-size:13px; }
+    .holiday-table-wrap { margin-top:12px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+    .holiday-table { width:100%; border-collapse:collapse; background:#fff; }
+    .holiday-table th,
+    .holiday-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; font-size:14px; }
+    .holiday-table th { background:#f9fafb; color:#374151; white-space:nowrap; }
+    .holiday-table tr:last-child td { border-bottom:0; }

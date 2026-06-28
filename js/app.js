@@ -4,6 +4,9 @@ const $ = (id) => document.getElementById(id);
     const fullDayOffText = "私用に付き全休";
     const holidayValue = "(祝日)";
     const holidayText = "祝日";
+    const holidayStorageKey = "nippo-holidays-v1";
+    const holidayJsonPath = "data/holidays.json";
+    const minHolidayYear = new Date().getFullYear();
     const fullDayOffFields = ["projectName", "companyName", "workPlace", "workContent", "impression"];
     const autoFillWorkPlaceTypes = [fullDayOffValue, holidayValue];
     const defaultValues = {
@@ -19,6 +22,7 @@ const $ = (id) => document.getElementById(id);
       skipLabels: "Yes"
     };
     let daysData = [];
+    let holidayMap = new Map();
 
     function toLocalDateInputValue(d) {
       const y = d.getFullYear();
@@ -124,6 +128,7 @@ const $ = (id) => document.getElementById(id);
           overtimeMinutes: 0
         };
         applyWorkPlaceTypeValues(item);
+        applyJsonHolidayValues(item);
         item.overtimeMinutes = calcOvertime(item.startTime, item.endTime, item.breakTime);
         return item;
       });
@@ -165,7 +170,9 @@ const $ = (id) => document.getElementById(id);
         daysData[index].overtimeMinutes = calcOvertime(daysData[index].startTime, daysData[index].endTime, daysData[index].breakTime);
         renderDays();
       } else if (key === "date" || key === "workPlaceType") {
-        if (key === "workPlaceType") {
+        if (key === "date") {
+          applyJsonHolidayValues(daysData[index]);
+        } else if (key === "workPlaceType") {
           if (autoFillWorkPlaceTypes.includes(value)) {
             applyWorkPlaceTypeValues(daysData[index]);
           } else if (autoFillWorkPlaceTypes.includes(previousWorkPlaceType)) {
@@ -183,15 +190,98 @@ const $ = (id) => document.getElementById(id);
       return String(str ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
     }
 
+    function normalizeHolidayData(data) {
+      const holidays = Array.isArray(data) ? data : data?.holidays;
+      if (!Array.isArray(holidays)) return [];
+      return holidays
+        .map(item => {
+          const date = typeof item === "string" ? item : item?.date;
+          const name = typeof item === "string" ? holidayText : item?.name;
+          return { date: String(date ?? ""), name: String(name || holidayText) };
+        })
+        .filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number(item.date.slice(0, 4)) >= minHolidayYear);
+    }
+
+    function applyJsonHolidayValues(day) {
+      const holidayName = holidayMap.get(day.date);
+      if (!holidayName) return false;
+      const holidayLabel = `${holidayText}・${holidayName}`;
+      day.workPlaceType = holidayValue;
+      day.projectName = holidayLabel;
+      day.companyName = holidayLabel;
+      day.workPlace = holidayLabel;
+      day.workContent = holidayLabel;
+      day.impression = holidayLabel;
+      return true;
+    }
+
+    function applyJsonHolidayValuesToDays() {
+      let changed = false;
+      for (const day of daysData) {
+        changed = applyJsonHolidayValues(day) || changed;
+      }
+      return changed;
+    }
+
+    async function loadHolidays() {
+      let holidays = [];
+      try {
+        const response = await fetch(holidayJsonPath, { cache: "no-store" });
+        if (response.ok) {
+          const data = JSON.parse((await response.text()).replace(/^\uFEFF/, ""));
+          holidays = normalizeHolidayData(data);
+          if (holidays.length) localStorage.setItem(holidayStorageKey, JSON.stringify(data));
+        }
+      } catch (_) {
+        // file:// や未作成ファイルでは失敗するため、ブラウザ保存済みデータを使う。
+      }
+
+      if (!holidays.length) {
+        try {
+          holidays = normalizeHolidayData(JSON.parse(localStorage.getItem(holidayStorageKey) || "null"));
+        } catch (_) {
+          holidays = [];
+        }
+      }
+
+      holidayMap = new Map(holidays.map(item => [item.date, item.name]));
+      if (holidayMap.size) {
+        if (applyJsonHolidayValuesToDays()) saveState();
+        renderDays();
+      }
+    }
+
+    function dayCardClass(day) {
+      const weekday = parseLocalDate(day.date).getDay();
+      if (holidayMap.has(day.date)) return " day-card-holiday";
+      if (weekday === 6) return " day-card-saturday";
+      if (weekday === 0) return " day-card-sunday";
+      return "";
+    }
+
+    function extraCopyButton(day) {
+      const weekday = parseLocalDate(day.date).getDay();
+      if (weekday === 5) {
+        return '<button class="secondary small-btn" type="button" id="copyWeekdaysBtn" data-copy-mode="weekdays">copy：月〜金</button>';
+      }
+      if (weekday === 0) {
+        return '<button class="secondary small-btn" type="button" id="copyAllBtn" data-copy-mode="all">copy：月〜日</button>';
+      }
+      return "";
+    }
+
     function renderDays() {
       const root = $("days");
       root.innerHTML = daysData.map((day, i) => `
-        <article class="day-card">
+        <article class="day-card${dayCardClass(day)}">
           <div class="day-head">
             <div class="day-title">
               <h3>${mmddFromIso(day.date)}(${weekdayFromIso(day.date)})</h3>
             </div>
-            <button class="secondary small-btn" type="button" data-copy-day="${i}">copy</button>
+            <div class="day-copy-actions">
+              ${extraCopyButton(day)}
+              <button class="secondary small-btn" type="button" data-copy-day="${i}">copy</button>
+            </div>
           </div>
           <div class="day-body">
             <div class="col-2"><label>開始</label><input type="time" value="${day.startTime}" data-i="${i}" data-key="startTime"></div>
@@ -218,6 +308,9 @@ const $ = (id) => document.getElementById(id);
       });
       root.querySelectorAll("button[data-copy-day]").forEach(btn => {
         btn.addEventListener("click", () => copyText("day", Number(btn.dataset.copyDay)));
+      });
+      root.querySelectorAll("button[data-copy-mode]").forEach(btn => {
+        btn.addEventListener("click", () => copyText(btn.dataset.copyMode));
       });
       updateOutput();
     }
@@ -377,6 +470,7 @@ const $ = (id) => document.getElementById(id);
 
     loadState();
     renderDays();
+    loadHolidays();
 
     function handleSettingChange(id) {
       if (["defaultStartTime", "defaultEndTime", "defaultBreakTime"].includes(id)) {
@@ -410,6 +504,4 @@ const $ = (id) => document.getElementById(id);
     $("exportSettingsBtn").addEventListener("click", exportSettings);
     $("importSettingsBtn").addEventListener("click", () => $("importSettingsFile").click());
     $("importSettingsFile").addEventListener("change", (e) => importSettingsFile(e.target.files[0]));
-    $("copyWeekdaysBtn").addEventListener("click", () => copyText("weekdays"));
-    $("copyAllBtn").addEventListener("click", () => copyText("all"));
     $("resetBtn").addEventListener("click", resetForm);
