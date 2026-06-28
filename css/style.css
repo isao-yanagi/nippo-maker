@@ -22,6 +22,12 @@
     textarea { min-height:70px; resize:vertical; }
     .full { grid-column: 1 / -1; }
     .buttons { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+    .settings-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:center; }
+    .settings-actions #createBtn,
+    .settings-actions #resetBtn,
+    .settings-file-label { grid-column:1 / -1; }
+    .settings-actions #resetBtn { margin-bottom:4px; }
+    .settings-file-label { color:var(--muted); font-size:12px; font-weight:700; margin-top:4px; }
     .copy-buttons { width:auto; display:flex; flex-wrap:nowrap; gap:8px; justify-content:flex-end; }
     .copy-buttons button { flex:0 0 auto; min-height:38px; padding:8px 12px; font-size:13px; white-space:nowrap; }
     button { border:0; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; background:var(--accent); color:white; }
@@ -84,6 +90,8 @@
       input, select, textarea { min-height:44px; font-size:16px; padding:10px 12px; }
       textarea { min-height:88px; }
       .buttons { width:100%; gap:8px; }
+      .settings-actions { grid-template-columns:1fr; gap:9px; }
+      .settings-actions #resetBtn { margin-bottom:6px; }
       button { min-height:44px; padding:11px 12px; font-size:14px; }
       .buttons button { flex:1 1 100%; }
       .result > div:first-child { align-items:flex-start !important; }
