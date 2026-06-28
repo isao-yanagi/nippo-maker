@@ -191,7 +191,7 @@ const $ = (id) => document.getElementById(id);
             <div class="day-title">
               <h3>${mmddFromIso(day.date)}(${weekdayFromIso(day.date)})</h3>
             </div>
-            <button class="secondary small-btn" type="button" data-copy-day="${i}">コピー：${weekdayFromIso(day.date)}</button>
+            <button class="secondary small-btn" type="button" data-copy-day="${i}">copy</button>
           </div>
           <div class="day-body">
             <div class="col-2"><label>開始</label><input type="time" value="${day.startTime}" data-i="${i}" data-key="startTime"></div>
