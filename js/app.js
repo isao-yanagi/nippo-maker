@@ -2,7 +2,10 @@ const $ = (id) => document.getElementById(id);
     const settingFields = ["baseDate","defaultStartTime","defaultEndTime","defaultBreakTime","projectName","companyName","workPlace","workPlaceType","workContent","impression","skipLabels"];
     const fullDayOffValue = "(全休)";
     const fullDayOffText = "私用に付き全休";
+    const holidayValue = "(祝日)";
+    const holidayText = "祝日";
     const fullDayOffFields = ["projectName", "companyName", "workPlace", "workContent", "impression"];
+    const autoFillWorkPlaceTypes = [fullDayOffValue, holidayValue];
     const defaultValues = {
       defaultStartTime: "09:00",
       defaultEndTime: "17:30",
@@ -120,9 +123,7 @@ const $ = (id) => document.getElementById(id);
           impression: s.impression,
           overtimeMinutes: 0
         };
-        if (item.workPlaceType === fullDayOffValue) {
-          applyFullDayOffValues(item);
-        }
+        applyWorkPlaceTypeValues(item);
         item.overtimeMinutes = calcOvertime(item.startTime, item.endTime, item.breakTime);
         return item;
       });
@@ -133,6 +134,20 @@ const $ = (id) => document.getElementById(id);
     function applyFullDayOffValues(day) {
       for (const field of fullDayOffFields) {
         day[field] = fullDayOffText;
+      }
+    }
+
+    function applyHolidayValues(day) {
+      for (const field of fullDayOffFields) {
+        day[field] = holidayText;
+      }
+    }
+
+    function applyWorkPlaceTypeValues(day) {
+      if (day.workPlaceType === fullDayOffValue) {
+        applyFullDayOffValues(day);
+      } else if (day.workPlaceType === holidayValue) {
+        applyHolidayValues(day);
       }
     }
 
@@ -151,9 +166,9 @@ const $ = (id) => document.getElementById(id);
         renderDays();
       } else if (key === "date" || key === "workPlaceType") {
         if (key === "workPlaceType") {
-          if (value === fullDayOffValue) {
-            applyFullDayOffValues(daysData[index]);
-          } else if (previousWorkPlaceType === fullDayOffValue) {
+          if (autoFillWorkPlaceTypes.includes(value)) {
+            applyWorkPlaceTypeValues(daysData[index]);
+          } else if (autoFillWorkPlaceTypes.includes(previousWorkPlaceType)) {
             applyDefaultWorkValues(daysData[index]);
           }
         }
@@ -190,6 +205,7 @@ const $ = (id) => document.getElementById(id);
               <option value="(在宅)" ${day.workPlaceType === "(在宅)" ? "selected" : ""}>(在宅)</option>
               <option value="(出社)" ${day.workPlaceType === "(出社)" ? "selected" : ""}>(出社)</option>
               <option value="(全休)" ${day.workPlaceType === "(全休)" ? "selected" : ""}>(全休)</option>
+              <option value="(祝日)" ${day.workPlaceType === "(祝日)" ? "selected" : ""}>(祝日)</option>
             </select></div>
             <div class="col-6"><label>作業内容</label><textarea data-i="${i}" data-key="workContent">${escapeHtml(day.workContent)}</textarea></div>
             <div class="col-6"><label>所感</label><textarea data-i="${i}" data-key="impression">${escapeHtml(day.impression)}</textarea></div>
@@ -220,7 +236,7 @@ const $ = (id) => document.getElementById(id);
         } else {
           lines.push("①出退勤(in-out)");
           lines.push(`  ${mmddFromIso(day.date)}(${weekdayFromIso(day.date)}) ${day.startTime}～${day.endTime}`);
-          lines.push("② PJ 名 / 常駐先企業名 / 出社場所(当日の勤務場所 出社 or 在宅 or 全休)");
+          lines.push("② PJ 名 / 常駐先企業名 / 出社場所(当日の勤務場所 出社 or 在宅 or 全休 or 祝日)");
           lines.push(`  ${day.projectName} / ${day.companyName} / ${day.workPlace} / ${day.workPlaceType}`);
           lines.push("③作業内容");
           lines.push(`  ${day.workContent}`);
