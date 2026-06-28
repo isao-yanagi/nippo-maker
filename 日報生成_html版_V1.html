@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>日報生成 html版 v1</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-text">
+      <h1>日報生成 html版 v1</h1>
+      <div class="sub">生成結果を7日分の編集項目として表示し、入力値をブラウザに自動保存します。開始・終了時刻と休憩時間から残業時間を時分形式で自動計算します。</div>
+    </div>
+    <button class="menu-btn" id="openSettingsBtn" type="button" aria-controls="settingsPanel" aria-expanded="false">☰ 初期設定</button>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+
+  <main>
+    <section class="form" id="settingsPanel" aria-label="初期設定">
+      <div class="form-title-row">
+        <h2>初期設定</h2>
+        <button class="ghost drawer-close" id="closeSettingsBtn" type="button">閉じる</button>
+      </div>
+      <div class="grid">
+        <div class="full">
+          <label for="baseDate">対象日（この日を含む月〜日を作成）</label>
+          <input id="baseDate" type="date" />
+        </div>
+        <div>
+          <label for="defaultStartTime">基本開始</label>
+          <input id="defaultStartTime" type="time" value="09:00" />
+        </div>
+        <div>
+          <label for="defaultEndTime">基本終了</label>
+          <input id="defaultEndTime" type="time" value="17:30" />
+        </div>
+        <div>
+          <label for="defaultBreakTime">休憩時間</label>
+          <input id="defaultBreakTime" type="time" value="01:00" />
+        </div>
+        <div class="full">
+          <label for="projectName">PJ名</label>
+          <input id="projectName" value="◯◯システムの刷新" />
+        </div>
+        <div class="full">
+          <label for="companyName">常駐先企業名</label>
+          <input id="companyName" value="XXXXX株式会社" />
+        </div>
+        <div>
+          <label for="workPlace">出社場所</label>
+          <input id="workPlace" value="丸の内" />
+        </div>
+        <div>
+          <label for="workPlaceType">勤務場所</label>
+          <select id="workPlaceType">
+            <option value="(在宅)">(在宅)</option>
+            <option value="(出社)">(出社)</option>
+            <option value="(全休)">(全休)</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="workContent">作業内容</label>
+          <textarea id="workContent">モック画面作成</textarea>
+        </div>
+        <div class="full">
+          <label for="impression">所感</label>
+          <textarea id="impression">モック画面作成</textarea>
+        </div>
+        <div>
+          <label for="skipLabels">項目表記の省略</label>
+          <select id="skipLabels">
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="createBtn">7日分を作成</button>
+        <button class="ghost" id="resetBtn">初期値に戻す</button>
+      </div>
+      <div class="note">
+        残業時間は「当日の終了−開始−休憩時間」から「基本終了−基本開始−初期休憩時間」を引いて自動計算します。例：基本 09:00〜17:30、休憩1h00m、当日 09:00〜18:45 なら 1h15m。丸めは行いません。<br>
+        各日の項目は生成後に直接変更できます。入力内容は自動保存され、次回開いたときに復元されます。同じ端末・同じブラウザで有効です。
+      </div>
+    </section>
+
+    <section class="result">
+      <div class="result-head">
+        <h2 class="result-title">生成結果（編集可能）</h2>
+        <div class="buttons copy-buttons result-copy-buttons">
+          <button class="secondary" id="copyWeekdaysBtn">コピー：月〜金</button>
+          <button class="secondary" id="copyAllBtn">コピー：月〜日</button>
+        </div>
+      </div>
+      <div id="days" class="days result-days"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">コピーしました</div>
+  <script src="js/app.js"></script>
+</body>
+</html>
