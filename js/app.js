@@ -280,7 +280,7 @@ const $ = (id) => document.getElementById(id);
             </div>
             <div class="day-copy-actions">
               ${extraCopyButton(day)}
-              <button class="secondary small-btn" type="button" data-copy-day="${i}">copy</button>
+              <button class="secondary small-btn" type="button" data-copy-day="${i}">copy：${weekdayFromIso(day.date)}</button>
             </div>
           </div>
           <div class="day-body">
