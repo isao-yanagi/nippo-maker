@@ -41,7 +41,7 @@ const $ = (id) => document.getElementById(id);
       const diff = day === 0 ? -6 : 1 - day;
       return addDays(d, diff);
     }
-    function jpWeekday(date) { return ["日曜","月曜","火曜","水曜","木曜","金曜","土曜"][date.getDay()]; }
+    function jpWeekday(date) { return ["日","月","火","水","木","金","土"][date.getDay()]; }
     function mmddFromIso(iso) {
       const d = parseLocalDate(iso);
       return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
