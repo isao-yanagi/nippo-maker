@@ -23,7 +23,6 @@ const $ = (id) => document.getElementById(id);
     };
     let daysData = [];
     let holidayMap = new Map();
-    let initialResultJumpDone = false;
 
     function toLocalDateInputValue(d) {
       const y = d.getFullYear();
@@ -492,25 +491,6 @@ const $ = (id) => document.getElementById(id);
       $("openSettingsBtn").setAttribute("aria-expanded", "false");
     }
 
-    function jumpToResultDate() {
-      const firstDayCard = document.querySelector(".result-days .day-card");
-      if (!firstDayCard) return;
-      firstDayCard.scrollIntoView({ block: "start", inline: "nearest" });
-    }
-
-    function jumpToResultDateAfterLayout() {
-      if (initialResultJumpDone) return;
-      initialResultJumpDone = true;
-      if ("scrollRestoration" in history) {
-        history.scrollRestoration = "manual";
-      }
-      requestAnimationFrame(() => {
-        jumpToResultDate();
-        setTimeout(jumpToResultDate, 120);
-        setTimeout(jumpToResultDate, 450);
-      });
-    }
-
     settingFields.forEach(id => {
       $(id).addEventListener("input", () => handleSettingChange(id));
       $(id).addEventListener("change", () => handleSettingChange(id));
@@ -525,8 +505,3 @@ const $ = (id) => document.getElementById(id);
     $("importSettingsBtn").addEventListener("click", () => $("importSettingsFile").click());
     $("importSettingsFile").addEventListener("change", (e) => importSettingsFile(e.target.files[0]));
     $("resetBtn").addEventListener("click", resetForm);
-    if (document.readyState === "complete") {
-      jumpToResultDateAfterLayout();
-    } else {
-      window.addEventListener("load", jumpToResultDateAfterLayout, { once: true });
-    }
