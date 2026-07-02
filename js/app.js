@@ -23,6 +23,7 @@ const $ = (id) => document.getElementById(id);
     };
     let daysData = [];
     let holidayMap = new Map();
+    let startupDateValue = "";
 
     function toLocalDateInputValue(d) {
       const y = d.getFullYear();
@@ -97,6 +98,7 @@ const $ = (id) => document.getElementById(id);
     function loadState() {
       const today = new Date();
       const todayValue = toLocalDateInputValue(today);
+      startupDateValue = todayValue;
       const saved = JSON.parse(localStorage.getItem("nippo-web-state-v11") || localStorage.getItem("nippo-web-state-v10") || localStorage.getItem("nippo-web-state-v9") || localStorage.getItem("nippo-web-state-v8") || localStorage.getItem("nippo-web-state-v6") || localStorage.getItem("nippo-web-state-v4") || localStorage.getItem("nippo-web-state-v3") || "{}");
       const settings = saved.settings || {};
       for (const id of settingFields) {
@@ -255,6 +257,7 @@ const $ = (id) => document.getElementById(id);
       if (holidayMap.size) {
         if (applyJsonHolidayValuesToDays()) saveState();
         renderDays();
+        scrollStartupDateToTop();
       }
     }
 
@@ -280,7 +283,7 @@ const $ = (id) => document.getElementById(id);
     function renderDays() {
       const root = $("days");
       root.innerHTML = daysData.map((day, i) => `
-        <article class="day-card${dayCardClass(day)}">
+        <article class="day-card${dayCardClass(day)}" data-day-date="${day.date}">
           <div class="day-head">
             <div class="day-title">
               <h3>${mmddFromIso(day.date)}(${weekdayFromIso(day.date)})</h3>
@@ -320,6 +323,24 @@ const $ = (id) => document.getElementById(id);
         btn.addEventListener("click", () => copyText(btn.dataset.copyMode));
       });
       updateOutput();
+    }
+
+    function scrollStartupDateToTop() {
+      const date = startupDateValue || $("baseDate").value;
+      const target = document.querySelector(`.day-card[data-day-date="${date}"] .day-head`);
+      if (!target) return;
+      const top = target.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top, left: 0, behavior: "auto" });
+    }
+
+    function scheduleStartupDateScroll() {
+      const run = () => {
+        scrollStartupDateToTop();
+        setTimeout(scrollStartupDateToTop, 100);
+        setTimeout(scrollStartupDateToTop, 350);
+      };
+      if (document.readyState === "complete") run();
+      else window.addEventListener("load", run, { once: true });
     }
 
     function buildText(mode = "all", dayIndex = null) {
@@ -478,6 +499,7 @@ const $ = (id) => document.getElementById(id);
     loadState();
     renderDays();
     loadHolidays();
+    scheduleStartupDateScroll();
 
     function handleSettingChange(id) {
       if (["defaultStartTime", "defaultEndTime", "defaultBreakTime"].includes(id)) {
