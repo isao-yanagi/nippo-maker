@@ -89,12 +89,18 @@ const $ = (id) => document.getElementById(id);
     function saveState() {
       localStorage.setItem("nippo-web-state-v11", JSON.stringify({ settings: getSettings(), daysData }));
     }
+    function daysMatchBaseWeek() {
+      if (daysData.length !== 7) return false;
+      const start = mondayOfWeek(parseLocalDate($("baseDate").value));
+      return daysData.every((day, i) => day.date === toLocalDateInputValue(addDays(start, i)));
+    }
     function loadState() {
       const today = new Date();
+      const todayValue = toLocalDateInputValue(today);
       const saved = JSON.parse(localStorage.getItem("nippo-web-state-v11") || localStorage.getItem("nippo-web-state-v10") || localStorage.getItem("nippo-web-state-v9") || localStorage.getItem("nippo-web-state-v8") || localStorage.getItem("nippo-web-state-v6") || localStorage.getItem("nippo-web-state-v4") || localStorage.getItem("nippo-web-state-v3") || "{}");
       const settings = saved.settings || {};
       for (const id of settingFields) {
-        if (id === "baseDate") $(id).value = settings[id] || toLocalDateInputValue(today);
+        if (id === "baseDate") $(id).value = todayValue;
         else $(id).value = settings[id] ?? defaultValues[id] ?? "";
       }
       daysData = Array.isArray(saved.daysData) ? saved.daysData : [];
@@ -106,7 +112,8 @@ const $ = (id) => document.getElementById(id);
           overtimeMinutes: calcOvertime(day.startTime, day.endTime, breakTime)
         };
       });
-      if (daysData.length !== 7) createDaysData(false);
+      if (!daysMatchBaseWeek()) createDaysData(false);
+      else saveState();
     }
 
     function createDaysData(render = true) {
