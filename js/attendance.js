@@ -101,7 +101,7 @@ function overtimeDisplayText(day, baseWorkMinutes) {
 }
 
 function hasAttendanceInput(day) {
-  return Boolean(day && (day.startTime || day.endTime || day.breakTime || day.overtimeMinutes !== ""));
+  return Boolean(day && (day.startTime || day.endTime || day.breakTime));
 }
 
 function escapeHtml(str) {
