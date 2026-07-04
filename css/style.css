@@ -1,13 +1,13 @@
 :root {
       --bg:#f6f7fb; --panel:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
-      --accent:#2563eb; --accent2:#1d4ed8; --soft:#eef2ff; --danger:#dc2626; --ok:#059669;
+      --accent:#2563eb; --accent2:#1d4ed8; --soft:#eef2ff; --danger:#cd3d79; --ok:#059669;
     }
     * { box-sizing: border-box; }
     body { margin:0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
     header { padding:24px 28px 12px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
     h1 { margin:0 0 6px; font-size:24px; }
     .header-text { min-width:0; }
-    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:nowrap; flex:0 0 auto; }
     .menu-btn { display:none; white-space:nowrap; align-items:center; gap:8px; }
     .drawer-close { display:none; }
     .drawer-overlay { display:none; }
@@ -31,7 +31,7 @@
     .settings-file-label { color:var(--muted); font-size:12px; font-weight:700; margin-top:4px; }
     .copy-buttons { width:auto; display:flex; flex-wrap:nowrap; gap:8px; justify-content:flex-end; }
     .copy-buttons button { flex:0 0 auto; min-height:38px; padding:8px 12px; font-size:13px; white-space:nowrap; }
-    button, .link-button { border:0; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; background:var(--accent); color:white; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-height:40px; }
+    button, .link-button { border:0; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; background:var(--accent); color:white; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-height:40px; white-space:nowrap; }
     button:hover { background:var(--accent2); }
     button.secondary, .link-button.secondary { background:var(--soft); color:#1e3a8a; }
     button.secondary:hover, .link-button.secondary:hover { background:#dbeafe; }
@@ -46,10 +46,17 @@
     .day-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:#f9fafb; border-bottom:1px solid var(--line); }
     .day-card-saturday .day-head { background:#dbeafe; border-bottom-color:#bfdbfe; }
     .day-card-sunday .day-head, .day-card-holiday .day-head { background:#ffe4e6; border-bottom-color:#fecdd3; }
+    .day-card-saturday .day-head,
+    .day-card-sunday .day-head { min-height:66px; }
     .day-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .day-status { display:inline-flex; align-items:center; min-height:24px; padding:3px 8px; border-radius:999px; background:#fff; color:var(--muted); border:1px solid var(--line); font-size:12px; font-weight:700; }
+    .weekend-toggle-head { cursor:pointer; }
+    .weekend-toggle-head:hover { filter:brightness(.98); }
+    .weekend-toggle-label { color:var(--muted); font-size:12px; font-weight:700; }
     .day-copy-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:nowrap; }
     .calculated-value { min-height:40px; display:flex; align-items:center; border:1px solid #d1d5db; border-radius:10px; padding:9px 10px; background:#f9fafb; font-weight:700; color:#065f46; }
     .day-body { padding:14px; display:grid; grid-template-columns: repeat(12, 1fr); gap:12px; }
+    .day-body-collapsed { display:none; }
     .col-2 { grid-column: span 2; }
     .col-3 { grid-column: span 3; }
     .col-4 { grid-column: span 4; }
@@ -57,6 +64,9 @@
     .col-12 { grid-column: span 12; }
     .row-actions { display:flex; gap:8px; align-items:flex-end; }
     .small-btn { padding:8px 10px; font-size:12px; }
+    .field-with-action { display:flex; flex-direction:column; align-items:stretch; }
+    button.field-reset-btn { align-self:flex-end; min-height:32px; margin-top:8px; padding:6px 10px; background:var(--danger); color:#fff; }
+    button.field-reset-btn:hover { background:#b91c1c; color:#fff; }
     .visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
     .toast { position:fixed; right:20px; bottom:20px; background:#111827; color:#fff; padding:10px 14px; border-radius:10px; opacity:0; transform:translateY(8px); transition:.2s; pointer-events:none; z-index:10; }
     .toast.show { opacity:1; transform:translateY(0); }
@@ -122,6 +132,9 @@
     }
     @media (max-width: 420px) {
       header { padding-left:10px; padding-right:10px; }
+      .header-actions { gap:6px; }
+      .header-actions .link-button,
+      .header-actions .menu-btn { padding-left:9px; padding-right:9px; }
       main { padding-left:8px; padding-right:8px; }
       .form, .result { padding:12px; }
       .day-body { grid-template-columns:1fr 1fr; }
@@ -146,3 +159,21 @@
     .holiday-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; font-size:14px; }
     .holiday-table th { background:#f9fafb; color:#374151; white-space:nowrap; }
     .holiday-table tr:last-child td { border-bottom:0; }
+    .attendance-panel { width:100%; }
+    .attendance-summary { color:var(--muted); font-size:13px; font-weight:700; }
+    .attendance-table-wrap { margin-top:14px; max-height:calc(100dvh - 190px); overflow:auto; border:1px solid var(--line); border-radius:10px; }
+    .attendance-table { width:100%; border-collapse:collapse; background:#fff; table-layout:fixed; }
+    .attendance-table th,
+    .attendance-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; font-size:14px; white-space:nowrap; }
+    .attendance-table th { position:sticky; top:0; background:#f9fafb; color:#374151; z-index:3; box-shadow:0 1px 0 var(--line); }
+    .attendance-table th:first-child,
+    .attendance-table td:first-child { width:37%; }
+    .attendance-table th:not(:first-child):not(:last-child),
+    .attendance-table td:not(:first-child):not(:last-child) { text-align:right; width:10%; }
+    .attendance-table th:last-child,
+    .attendance-table td:last-child { width:13%; text-align:right; }
+    button.attendance-delete-btn { min-height:28px; width:28px; padding:0; border-radius:8px; font-size:16px; line-height:1; background:var(--danger); color:#fff; }
+    button.attendance-delete-btn:hover { background:#b91c1c; color:#fff; }
+    .attendance-table tr:last-child td { border-bottom:0; }
+    .attendance-table .attendance-saturday td { background:#eff6ff; }
+    .attendance-table .attendance-sunday td { background:#fff1f2; }

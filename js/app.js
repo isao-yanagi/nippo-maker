@@ -24,6 +24,7 @@ const $ = (id) => document.getElementById(id);
     let daysData = [];
     let holidayMap = new Map();
     let startupDateValue = "";
+    const attendanceStorageKey = "nippo-attendance-history-v1";
 
     function toLocalDateInputValue(d) {
       const y = d.getFullYear();
@@ -39,6 +40,13 @@ const $ = (id) => document.getElementById(id);
       const d = new Date(date);
       d.setDate(d.getDate() + days);
       return d;
+    }
+    function isWeekendDate(date) {
+      const day = date.getDay();
+      return day === 0 || day === 6;
+    }
+    function isWeekendIso(iso) {
+      return isWeekendDate(parseLocalDate(iso));
     }
     function mondayOfWeek(date) {
       const d = new Date(date);
@@ -76,7 +84,6 @@ const $ = (id) => document.getElementById(id);
       const m = total % 60;
       return `${h}h${String(m).padStart(2, "0")}m`;
     }
-
     function getSettings() {
       return Object.fromEntries(settingFields.map(id => [id, $(id).value]));
     }
@@ -87,7 +94,56 @@ const $ = (id) => document.getElementById(id);
         }
       }
     }
+    function loadAttendanceHistoryDays() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(attendanceStorageKey) || "null");
+        return Array.isArray(saved?.days) ? saved.days : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    function normalizeAttendanceDay(day, inactive = false) {
+      if (inactive) {
+        return {
+          date: day.date,
+          startTime: "",
+          endTime: "",
+          breakTime: "",
+          overtimeMinutes: ""
+        };
+      }
+      const breakTime = day.breakTime || $("defaultBreakTime").value || "01:00";
+      const storedOvertime = Number(day.overtimeMinutes);
+      return {
+        date: day.date,
+        startTime: day.startTime || "",
+        endTime: day.endTime || "",
+        breakTime,
+        overtimeMinutes: Number.isFinite(storedOvertime) ? storedOvertime : calcOvertime(day.startTime, day.endTime, breakTime)
+      };
+    }
+    function syncAttendanceHistory() {
+      const merged = new Map();
+      for (const day of loadAttendanceHistoryDays()) {
+        if (day && /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")) {
+          merged.set(day.date, normalizeAttendanceDay(day));
+        }
+      }
+      for (const day of daysData) {
+        if (day && /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")) {
+          merged.set(day.date, normalizeAttendanceDay(day, !isDayActive(day)));
+        }
+      }
+      const days = Array.from(merged.values()).sort((a, b) => a.date.localeCompare(b.date));
+      localStorage.setItem(attendanceStorageKey, JSON.stringify({
+        app: "nippo-maker",
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        days
+      }));
+    }
     function saveState() {
+      syncAttendanceHistory();
       localStorage.setItem("nippo-web-state-v11", JSON.stringify({ settings: getSettings(), daysData }));
     }
     function daysMatchBaseWeek() {
@@ -102,17 +158,20 @@ const $ = (id) => document.getElementById(id);
       const saved = JSON.parse(localStorage.getItem("nippo-web-state-v11") || localStorage.getItem("nippo-web-state-v10") || localStorage.getItem("nippo-web-state-v9") || localStorage.getItem("nippo-web-state-v8") || localStorage.getItem("nippo-web-state-v6") || localStorage.getItem("nippo-web-state-v4") || localStorage.getItem("nippo-web-state-v3") || "{}");
       const settings = saved.settings || {};
       for (const id of settingFields) {
-        if (id === "baseDate") $(id).value = todayValue;
+        if (id === "baseDate") $(id).value = settings[id] || todayValue;
         else $(id).value = settings[id] ?? defaultValues[id] ?? "";
       }
       daysData = Array.isArray(saved.daysData) ? saved.daysData : [];
       daysData = daysData.map(day => {
         const breakTime = day.breakTime || $("defaultBreakTime").value || "01:00";
-        return {
+        const normalized = {
           ...day,
           breakTime,
+          isExpanded: Object.prototype.hasOwnProperty.call(day, "isExpanded") ? day.isExpanded : !isWeekendIso(day.date),
           overtimeMinutes: calcOvertime(day.startTime, day.endTime, breakTime)
         };
+        if (isWeekendIso(normalized.date) && !normalized.isExpanded) clearDayValues(normalized);
+        return normalized;
       });
       if (!daysMatchBaseWeek()) createDaysData(false);
       else saveState();
@@ -128,6 +187,7 @@ const $ = (id) => document.getElementById(id);
           startTime: s.defaultStartTime,
           endTime: s.defaultEndTime,
           breakTime: s.defaultBreakTime,
+          isExpanded: !isWeekendDate(d),
           projectName: s.projectName,
           companyName: s.companyName,
           workPlace: s.workPlace,
@@ -139,6 +199,7 @@ const $ = (id) => document.getElementById(id);
         applyWorkPlaceTypeValues(item);
         applyJsonHolidayValues(item);
         item.overtimeMinutes = calcOvertime(item.startTime, item.endTime, item.breakTime);
+        if (isWeekendDate(d) && !item.isExpanded) clearDayValues(item);
         return item;
       });
       if (render) renderDays();
@@ -171,10 +232,44 @@ const $ = (id) => document.getElementById(id);
         day[field] = settings[field];
       }
     }
+    function clearDayValues(day) {
+      day.startTime = "";
+      day.endTime = "";
+      day.breakTime = "";
+      day.projectName = "";
+      day.companyName = "";
+      day.workPlace = "";
+      day.workPlaceType = "";
+      day.workContent = "";
+      day.impression = "";
+      day.overtimeMinutes = "";
+    }
+    function applyInitialValues(day) {
+      const settings = getSettings();
+      day.startTime = settings.defaultStartTime || defaultValues.defaultStartTime;
+      day.endTime = settings.defaultEndTime || defaultValues.defaultEndTime;
+      day.breakTime = settings.defaultBreakTime || defaultValues.defaultBreakTime;
+      day.projectName = settings.projectName || defaultValues.projectName;
+      day.companyName = settings.companyName || defaultValues.companyName;
+      day.workPlace = settings.workPlace || defaultValues.workPlace;
+      day.workPlaceType = settings.workPlaceType || defaultValues.workPlaceType;
+      day.workContent = settings.workContent || defaultValues.workContent;
+      day.impression = settings.impression || defaultValues.impression;
+      applyWorkPlaceTypeValues(day);
+      applyJsonHolidayValues(day);
+      day.overtimeMinutes = calcOvertime(day.startTime, day.endTime, day.breakTime);
+    }
 
     function updateDay(index, key, value) {
       const previousWorkPlaceType = daysData[index].workPlaceType;
-      daysData[index][key] = value;
+      daysData[index][key] = key === "isExpanded" ? value === true || value === "true" : value;
+      if (key === "isExpanded") {
+        if (isWeekendIso(daysData[index].date)) {
+          if (daysData[index].isExpanded) applyInitialValues(daysData[index]);
+          else clearDayValues(daysData[index]);
+        }
+        renderDays();
+      } else
       if (key === "startTime" || key === "endTime" || key === "breakTime") {
         daysData[index].overtimeMinutes = calcOvertime(daysData[index].startTime, daysData[index].endTime, daysData[index].breakTime);
         renderDays();
@@ -192,6 +287,12 @@ const $ = (id) => document.getElementById(id);
       } else {
         updateOutput();
       }
+      saveState();
+    }
+    function resetDayField(index, key) {
+      if (!daysData[index]) return;
+      daysData[index][key] = getSettings()[key] ?? defaultValues[key] ?? "";
+      renderDays();
       saveState();
     }
 
@@ -227,6 +328,7 @@ const $ = (id) => document.getElementById(id);
     function applyJsonHolidayValuesToDays() {
       let changed = false;
       for (const day of daysData) {
+        if (!isDayActive(day)) continue;
         changed = applyJsonHolidayValues(day) || changed;
       }
       return changed;
@@ -279,21 +381,32 @@ const $ = (id) => document.getElementById(id);
       }
       return "";
     }
+    function isDayActive(day) {
+      return !isWeekendIso(day.date) || day.isExpanded === true;
+    }
+    function weekendAccordionButton(day, index) {
+      const expanded = day.isExpanded === true;
+      return `<span class="weekend-toggle-label">${expanded ? "クリックで閉じる" : "クリックで入力"}</span>`;
+    }
 
     function renderDays() {
       const root = $("days");
-      root.innerHTML = daysData.map((day, i) => `
+      root.innerHTML = daysData.map((day, i) => {
+        const active = isDayActive(day);
+        return `
         <article class="day-card${dayCardClass(day)}" data-day-date="${day.date}">
-          <div class="day-head">
+          <div class="day-head${isWeekendIso(day.date) ? " weekend-toggle-head" : ""}" ${isWeekendIso(day.date) ? `data-toggle-weekend="${i}" role="button" tabindex="0" aria-expanded="${active}"` : ""}>
             <div class="day-title">
               <h3>${mmddFromIso(day.date)}(${weekdayFromIso(day.date)})</h3>
+              ${!active ? '<span class="day-status">未入力</span>' : ""}
+              ${isWeekendIso(day.date) ? weekendAccordionButton(day, i) : ""}
             </div>
             <div class="day-copy-actions">
               ${extraCopyButton(day)}
-              <button class="secondary small-btn" type="button" data-copy-day="${i}">copy：${weekdayFromIso(day.date)}</button>
+              ${active ? `<button class="secondary small-btn" type="button" data-copy-day="${i}">copy：${weekdayFromIso(day.date)}</button>` : ""}
             </div>
           </div>
-          <div class="day-body">
+          <div class="day-body${active ? "" : " day-body-collapsed"}">
             <div class="col-2"><label>開始</label><input type="time" value="${day.startTime}" data-i="${i}" data-key="startTime"></div>
             <div class="col-2"><label>終了</label><input type="time" value="${day.endTime}" data-i="${i}" data-key="endTime"></div>
             <div class="col-2"><label>休憩時間</label><input type="time" value="${day.breakTime || $('defaultBreakTime').value || '01:00'}" data-i="${i}" data-key="breakTime"></div>
@@ -308,9 +421,10 @@ const $ = (id) => document.getElementById(id);
               <option value="(祝日)" ${day.workPlaceType === "(祝日)" ? "selected" : ""}>(祝日)</option>
             </select></div>
             <div class="col-6"><label>作業内容</label><textarea data-i="${i}" data-key="workContent">${escapeHtml(day.workContent)}</textarea></div>
-            <div class="col-6"><label>所感</label><textarea data-i="${i}" data-key="impression">${escapeHtml(day.impression)}</textarea></div>
+            <div class="col-6 field-with-action"><label>所感</label><textarea data-i="${i}" data-key="impression">${escapeHtml(day.impression)}</textarea><button class="ghost small-btn field-reset-btn" type="button" data-reset-field="impression" data-i="${i}">リセット</button></div>
           </div>
-        </article>`).join("");
+        </article>`;
+      }).join("");
 
       root.querySelectorAll("input[data-key], select[data-key], textarea[data-key]").forEach(el => {
         el.addEventListener("input", () => updateDay(Number(el.dataset.i), el.dataset.key, el.value));
@@ -321,6 +435,21 @@ const $ = (id) => document.getElementById(id);
       });
       root.querySelectorAll("button[data-copy-mode]").forEach(btn => {
         btn.addEventListener("click", () => copyText(btn.dataset.copyMode));
+      });
+      root.querySelectorAll("button[data-reset-field]").forEach(btn => {
+        btn.addEventListener("click", () => resetDayField(Number(btn.dataset.i), btn.dataset.resetField));
+      });
+      root.querySelectorAll(".weekend-toggle-head[data-toggle-weekend]").forEach(head => {
+        const toggle = () => updateDay(Number(head.dataset.toggleWeekend), "isExpanded", head.getAttribute("aria-expanded") !== "true");
+        head.addEventListener("click", (event) => {
+          if (event.target.closest("button")) return;
+          toggle();
+        });
+        head.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          toggle();
+        });
       });
       updateOutput();
     }
@@ -345,7 +474,7 @@ const $ = (id) => document.getElementById(id);
 
     function buildText(mode = "all", dayIndex = null) {
       const skipLabels = $("skipLabels").value;
-      const targetDays = mode === "day" ? [daysData[dayIndex]].filter(Boolean) : (mode === "weekdays" ? daysData.slice(0, 5) : daysData);
+      const targetDays = (mode === "day" ? [daysData[dayIndex]].filter(Boolean) : (mode === "weekdays" ? daysData.slice(0, 5) : daysData)).filter(isDayActive);
       const lines = [];
       for (const day of targetDays) {
         if (skipLabels === "Yes") {
