@@ -131,7 +131,11 @@ const $ = (id) => document.getElementById(id);
       }
       for (const day of daysData) {
         if (day && /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")) {
-          merged.set(day.date, normalizeAttendanceDay(day, !isDayActive(day)));
+          if (isDayActive(day)) {
+            merged.set(day.date, normalizeAttendanceDay(day));
+          } else {
+            merged.delete(day.date);
+          }
         }
       }
       const days = Array.from(merged.values()).sort((a, b) => a.date.localeCompare(b.date));
