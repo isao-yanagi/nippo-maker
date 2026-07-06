@@ -24,7 +24,8 @@ const $ = (id) => document.getElementById(id);
     let daysData = [];
     let holidayMap = new Map();
     let startupDateValue = "";
-    const attendanceStorageKey = "nippo-attendance-history-v1";
+    let lastKnownTodayValue = "";
+    let autoBaseDate = true;
 
     function toLocalDateInputValue(d) {
       const y = d.getFullYear();
@@ -94,61 +95,14 @@ const $ = (id) => document.getElementById(id);
         }
       }
     }
-    function loadAttendanceHistoryDays() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(attendanceStorageKey) || "null");
-        return Array.isArray(saved?.days) ? saved.days : [];
-      } catch (_) {
-        return [];
-      }
-    }
-    function normalizeAttendanceDay(day, inactive = false) {
-      if (inactive) {
-        return {
-          date: day.date,
-          startTime: "",
-          endTime: "",
-          breakTime: "",
-          overtimeMinutes: ""
-        };
-      }
-      const breakTime = day.breakTime || $("defaultBreakTime").value || "01:00";
-      const storedOvertime = Number(day.overtimeMinutes);
-      return {
-        date: day.date,
-        startTime: day.startTime || "",
-        endTime: day.endTime || "",
-        breakTime,
-        overtimeMinutes: Number.isFinite(storedOvertime) ? storedOvertime : calcOvertime(day.startTime, day.endTime, breakTime)
-      };
-    }
-    function syncAttendanceHistory() {
-      const merged = new Map();
-      for (const day of loadAttendanceHistoryDays()) {
-        if (day && /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")) {
-          merged.set(day.date, normalizeAttendanceDay(day));
-        }
-      }
-      for (const day of daysData) {
-        if (day && /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")) {
-          if (isDayActive(day)) {
-            merged.set(day.date, normalizeAttendanceDay(day));
-          } else {
-            merged.delete(day.date);
-          }
-        }
-      }
-      const days = Array.from(merged.values()).sort((a, b) => a.date.localeCompare(b.date));
-      localStorage.setItem(attendanceStorageKey, JSON.stringify({
-        app: "nippo-maker",
-        version: 1,
-        updatedAt: new Date().toISOString(),
-        days
-      }));
-    }
     function saveState() {
-      syncAttendanceHistory();
-      localStorage.setItem("nippo-web-state-v11", JSON.stringify({ settings: getSettings(), daysData }));
+      localStorage.setItem("nippo-web-state-v11", JSON.stringify({
+        settings: getSettings(),
+        daysData,
+        autoBaseDate,
+        savedTodayValue: lastKnownTodayValue,
+        savedAt: new Date().toISOString()
+      }));
     }
     function daysMatchBaseWeek() {
       if (daysData.length !== 7) return false;
@@ -159,10 +113,15 @@ const $ = (id) => document.getElementById(id);
       const today = new Date();
       const todayValue = toLocalDateInputValue(today);
       startupDateValue = todayValue;
+      lastKnownTodayValue = todayValue;
       const saved = JSON.parse(localStorage.getItem("nippo-web-state-v11") || localStorage.getItem("nippo-web-state-v10") || localStorage.getItem("nippo-web-state-v9") || localStorage.getItem("nippo-web-state-v8") || localStorage.getItem("nippo-web-state-v6") || localStorage.getItem("nippo-web-state-v4") || localStorage.getItem("nippo-web-state-v3") || "{}");
       const settings = saved.settings || {};
+      const savedBaseDate = settings.baseDate || "";
+      const yesterdayValue = toLocalDateInputValue(addDays(today, -1));
+      const isLegacyAutoBaseDate = !Object.prototype.hasOwnProperty.call(saved, "autoBaseDate") && (!savedBaseDate || savedBaseDate === todayValue || savedBaseDate === yesterdayValue);
+      autoBaseDate = Object.prototype.hasOwnProperty.call(saved, "autoBaseDate") ? saved.autoBaseDate !== false : isLegacyAutoBaseDate;
       for (const id of settingFields) {
-        if (id === "baseDate") $(id).value = settings[id] || todayValue;
+        if (id === "baseDate") $(id).value = autoBaseDate ? todayValue : (settings[id] || todayValue);
         else $(id).value = settings[id] ?? defaultValues[id] ?? "";
       }
       daysData = Array.isArray(saved.daysData) ? saved.daysData : [];
@@ -476,6 +435,21 @@ const $ = (id) => document.getElementById(id);
       else window.addEventListener("load", run, { once: true });
     }
 
+    function refreshAutoBaseDateIfNeeded() {
+      const todayValue = toLocalDateInputValue(new Date());
+      if (todayValue === lastKnownTodayValue) return;
+      const previousTodayValue = lastKnownTodayValue;
+      lastKnownTodayValue = todayValue;
+      if (!autoBaseDate && $("baseDate").value !== previousTodayValue) {
+        saveState();
+        return;
+      }
+      autoBaseDate = true;
+      $("baseDate").value = todayValue;
+      startupDateValue = todayValue;
+      createDaysData(true);
+    }
+
     function buildText(mode = "all", dayIndex = null) {
       const skipLabels = $("skipLabels").value;
       const targetDays = (mode === "day" ? [daysData[dayIndex]].filter(Boolean) : (mode === "weekdays" ? daysData.slice(0, 5) : daysData)).filter(isDayActive);
@@ -635,6 +609,9 @@ const $ = (id) => document.getElementById(id);
     scheduleStartupDateScroll();
 
     function handleSettingChange(id) {
+      if (id === "baseDate") {
+        autoBaseDate = $("baseDate").value === lastKnownTodayValue;
+      }
       if (["defaultStartTime", "defaultEndTime", "defaultBreakTime"].includes(id)) {
         daysData = daysData.map(day => ({ ...day, overtimeMinutes: calcOvertime(day.startTime, day.endTime, day.breakTime) }));
         renderDays();
@@ -657,6 +634,7 @@ const $ = (id) => document.getElementById(id);
       $(id).addEventListener("input", () => handleSettingChange(id));
       $(id).addEventListener("change", () => handleSettingChange(id));
     });
+    setInterval(refreshAutoBaseDateIfNeeded, 30000);
     window.addEventListener("beforeunload", saveState);
     $("openSettingsBtn").addEventListener("click", openSettings);
     $("closeSettingsBtn").addEventListener("click", closeSettings);

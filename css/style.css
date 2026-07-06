@@ -159,21 +159,3 @@
     .holiday-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; font-size:14px; }
     .holiday-table th { background:#f9fafb; color:#374151; white-space:nowrap; }
     .holiday-table tr:last-child td { border-bottom:0; }
-    .attendance-panel { width:100%; }
-    .attendance-summary { color:var(--muted); font-size:13px; font-weight:700; }
-    .attendance-table-wrap { margin-top:14px; max-height:calc(100dvh - 190px); overflow:auto; border:1px solid var(--line); border-radius:10px; }
-    .attendance-table { width:100%; border-collapse:collapse; background:#fff; table-layout:fixed; }
-    .attendance-table th,
-    .attendance-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; font-size:14px; white-space:nowrap; }
-    .attendance-table th { position:sticky; top:0; background:#f9fafb; color:#374151; z-index:3; box-shadow:0 1px 0 var(--line); }
-    .attendance-table th:first-child,
-    .attendance-table td:first-child { width:37%; }
-    .attendance-table th:not(:first-child):not(:last-child),
-    .attendance-table td:not(:first-child):not(:last-child) { text-align:right; width:10%; }
-    .attendance-table th:last-child,
-    .attendance-table td:last-child { width:13%; text-align:right; }
-    button.attendance-delete-btn { min-height:28px; width:28px; padding:0; border-radius:8px; font-size:16px; line-height:1; background:var(--danger); color:#fff; }
-    button.attendance-delete-btn:hover { background:#b91c1c; color:#fff; }
-    .attendance-table tr:last-child td { border-bottom:0; }
-    .attendance-table .attendance-saturday td { background:#eff6ff; }
-    .attendance-table .attendance-sunday td { background:#fff1f2; }
