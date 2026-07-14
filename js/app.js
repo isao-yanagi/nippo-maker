@@ -109,6 +109,9 @@ const $ = (id) => document.getElementById(id);
       const start = mondayOfWeek(parseLocalDate($("baseDate").value));
       return daysData.every((day, i) => day.date === toLocalDateInputValue(addDays(start, i)));
     }
+    function daysContainDate(dateValue) {
+      return daysData.some(day => day.date === dateValue);
+    }
     function loadState() {
       const today = new Date();
       const todayValue = toLocalDateInputValue(today);
@@ -136,7 +139,11 @@ const $ = (id) => document.getElementById(id);
         if (isWeekendIso(normalized.date) && !normalized.isExpanded) clearDayValues(normalized);
         return normalized;
       });
-      if (!daysMatchBaseWeek()) createDaysData(false);
+      if (!daysContainDate(todayValue)) {
+        autoBaseDate = true;
+        $("baseDate").value = todayValue;
+        createDaysData(false);
+      } else if (!daysMatchBaseWeek()) createDaysData(false);
       else saveState();
     }
 
