@@ -396,8 +396,8 @@ const $ = (id) => document.getElementById(id);
               <option value="(全休)" ${day.workPlaceType === "(全休)" ? "selected" : ""}>(全休)</option>
               <option value="(祝日)" ${day.workPlaceType === "(祝日)" ? "selected" : ""}>(祝日)</option>
             </select></div>
-            <div class="col-6 field-with-action"><div class="field-label-row"><label>作業内容</label><button class="ghost field-copy-btn" type="button" data-copy-field="workContent" data-i="${i}">コピー</button></div><textarea data-i="${i}" data-key="workContent">${escapeHtml(day.workContent)}</textarea></div>
-            <div class="col-6 field-with-action"><div class="field-label-row"><label>所感</label><button class="ghost field-copy-btn" type="button" data-copy-field="impression" data-i="${i}">コピー</button></div><textarea data-i="${i}" data-key="impression">${escapeHtml(day.impression)}</textarea><button class="ghost small-btn field-reset-btn" type="button" data-reset-field="impression" data-i="${i}">リセット</button></div>
+            <div class="col-6 field-with-action"><label>作業内容</label><div class="textarea-copy-wrap"><textarea data-i="${i}" data-key="workContent">${escapeHtml(day.workContent)}</textarea><button class="field-copy-btn" type="button" data-copy-field="workContent" data-i="${i}">Copy</button></div></div>
+            <div class="col-6 field-with-action"><label>所感</label><div class="textarea-copy-wrap"><textarea data-i="${i}" data-key="impression">${escapeHtml(day.impression)}</textarea><button class="field-copy-btn" type="button" data-copy-field="impression" data-i="${i}">Copy</button></div><button class="ghost small-btn field-reset-btn" type="button" data-reset-field="impression" data-i="${i}">リセット</button></div>
           </div>
         </article>`;
       }).join("");
