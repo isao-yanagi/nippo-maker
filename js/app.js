@@ -136,6 +136,10 @@ const $ = (id) => document.getElementById(id);
           isExpanded: Object.prototype.hasOwnProperty.call(day, "isExpanded") ? day.isExpanded : !isWeekendIso(day.date),
           overtimeMinutes: calcOvertime(day.startTime, day.endTime, breakTime)
         };
+        if (normalized.workPlaceType === fullDayOffValue) {
+          normalized.companyName = "";
+          normalized.workPlace = "";
+        }
         if (isWeekendIso(normalized.date) && !normalized.isExpanded) clearDayValues(normalized);
         return normalized;
       });
@@ -180,6 +184,8 @@ const $ = (id) => document.getElementById(id);
       for (const field of fullDayOffFields) {
         day[field] = fullDayOffText;
       }
+      day.companyName = "";
+      day.workPlace = "";
     }
 
     function applyHolidayValues(day) {
@@ -390,8 +396,8 @@ const $ = (id) => document.getElementById(id);
               <option value="(全休)" ${day.workPlaceType === "(全休)" ? "selected" : ""}>(全休)</option>
               <option value="(祝日)" ${day.workPlaceType === "(祝日)" ? "selected" : ""}>(祝日)</option>
             </select></div>
-            <div class="col-6"><label>作業内容</label><textarea data-i="${i}" data-key="workContent">${escapeHtml(day.workContent)}</textarea></div>
-            <div class="col-6 field-with-action"><label>所感</label><textarea data-i="${i}" data-key="impression">${escapeHtml(day.impression)}</textarea><button class="ghost small-btn field-reset-btn" type="button" data-reset-field="impression" data-i="${i}">リセット</button></div>
+            <div class="col-6 field-with-action"><div class="field-label-row"><label>作業内容</label><button class="ghost field-copy-btn" type="button" data-copy-field="workContent" data-i="${i}">コピー</button></div><textarea data-i="${i}" data-key="workContent">${escapeHtml(day.workContent)}</textarea></div>
+            <div class="col-6 field-with-action"><div class="field-label-row"><label>所感</label><button class="ghost field-copy-btn" type="button" data-copy-field="impression" data-i="${i}">コピー</button></div><textarea data-i="${i}" data-key="impression">${escapeHtml(day.impression)}</textarea><button class="ghost small-btn field-reset-btn" type="button" data-reset-field="impression" data-i="${i}">リセット</button></div>
           </div>
         </article>`;
       }).join("");
@@ -405,6 +411,9 @@ const $ = (id) => document.getElementById(id);
       });
       root.querySelectorAll("button[data-copy-mode]").forEach(btn => {
         btn.addEventListener("click", () => copyText(btn.dataset.copyMode));
+      });
+      root.querySelectorAll("button[data-copy-field]").forEach(btn => {
+        btn.addEventListener("click", () => copyField(Number(btn.dataset.i), btn.dataset.copyField));
       });
       root.querySelectorAll("button[data-reset-field]").forEach(btn => {
         btn.addEventListener("click", () => resetDayField(Number(btn.dataset.i), btn.dataset.resetField));
@@ -570,25 +579,34 @@ const $ = (id) => document.getElementById(id);
       reader.readAsText(file);
     }
 
-    async function copyText(mode = "all", dayIndex = null) {
-      const text = buildText(mode, dayIndex);
-      saveState();
-
+    async function writeClipboard(text) {
       // file:// で直接開いた場合、Clipboard API はブラウザ側で警告や拒否が出ることがあるため、
       // ローカルファイルでは最初から execCommand のフォールバックでコピーする。
-      let copied = false;
       if (location.protocol !== "file:" && navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(text);
-          copied = true;
+          return true;
         } catch (_) {
-          copied = fallbackCopy(text);
+          return fallbackCopy(text);
         }
-      } else {
-        copied = fallbackCopy(text);
       }
+      return fallbackCopy(text);
+    }
+
+    async function copyText(mode = "all", dayIndex = null) {
+      const text = buildText(mode, dayIndex);
+      saveState();
+      const copied = await writeClipboard(text);
 
       showToast(copied ? (mode === "day" ? "この日をコピーしました" : "コピーしました") : "コピーに失敗しました");
+    }
+
+    async function copyField(dayIndex, field) {
+      const day = daysData[dayIndex];
+      if (!day || !["workContent", "impression"].includes(field)) return;
+      const copied = await writeClipboard(String(day[field] ?? ""));
+      const label = field === "workContent" ? "作業内容" : "所感";
+      showToast(copied ? `${label}をコピーしました` : "コピーに失敗しました");
     }
 
     function showToast(message) {
