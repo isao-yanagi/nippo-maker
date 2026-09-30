@@ -5,6 +5,7 @@ const $ = (id) => document.getElementById(id);
     const holidayValue = "(祝日)";
     const holidayText = "祝日";
     const holidayStorageKey = "nippo-holidays-v1";
+    const monthlyHoursStorageKey = "nippo-monthly-hours-v1";
     const holidayJsonPath = "data/holidays.json";
     const minHolidayYear = new Date().getFullYear();
     const fullDayOffFields = ["projectName", "companyName", "workPlace", "workContent", "impression"];
@@ -85,6 +86,89 @@ const $ = (id) => document.getElementById(id);
       const m = total % 60;
       return `${h}h${String(m).padStart(2, "0")}m`;
     }
+    function workedMinutes(start, end, breakTime) {
+      if (!start || !end) return 0;
+      return Math.max(0, durationMinutes(start, end) - durationMinutes("00:00", breakTime || "00:00"));
+    }
+    function monthKeyFromIso(iso) {
+      return String(iso || "").slice(0, 7);
+    }
+    function loadMonthlyHours() {
+      try {
+        const value = JSON.parse(localStorage.getItem(monthlyHoursStorageKey) || "{}");
+        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      } catch (_) {
+        return {};
+      }
+    }
+    function saveMonthlyHours() {
+      const stored = loadMonthlyHours();
+      for (const day of daysData) {
+        if (!day?.date) continue;
+        stored[day.date] = {
+          startTime: day.startTime || "",
+          endTime: day.endTime || "",
+          breakTime: day.breakTime || "",
+          workPlaceType: day.workPlaceType || "",
+          isActive: isDayActive(day)
+        };
+      }
+
+      const currentMonth = monthKeyFromIso(toLocalDateInputValue(new Date()));
+      const savedMonths = Object.keys(stored)
+        .filter(key => /^\d{4}-\d{2}-\d{2}$/.test(key))
+        .map(monthKeyFromIso);
+      const editedMonths = daysData
+        .map(day => monthKeyFromIso(day?.date))
+        .filter(month => /^\d{4}-\d{2}$/.test(month));
+      const retainedMonths = [...new Set([currentMonth, ...savedMonths, ...editedMonths])]
+        .sort()
+        .slice(-2);
+      for (const date of Object.keys(stored)) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date) && !retainedMonths.includes(monthKeyFromIso(date))) delete stored[date];
+      }
+      const monthlyTotals = {};
+      for (const monthKey of retainedMonths) {
+        monthlyTotals[monthKey] = monthlyEstimatedMinutes(monthKey + "-01");
+      }
+      stored.monthlyTotals = monthlyTotals;
+      localStorage.setItem(monthlyHoursStorageKey, JSON.stringify(stored));
+    }
+    function isNonWorkingRecord(record) {
+      return !record?.isActive || record.workPlaceType === fullDayOffValue || record.workPlaceType === holidayValue;
+    }
+    function monthlyEstimatedMinutes(iso) {
+      const target = parseLocalDate(`${monthKeyFromIso(iso)}-01`);
+      const year = target.getFullYear();
+      const month = target.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const stored = loadMonthlyHours();
+      for (const day of daysData) {
+        if (!day?.date || monthKeyFromIso(day.date) !== monthKeyFromIso(iso)) continue;
+        stored[day.date] = {
+          startTime: day.startTime || "",
+          endTime: day.endTime || "",
+          breakTime: day.breakTime || "",
+          workPlaceType: day.workPlaceType || "",
+          isActive: isDayActive(day)
+        };
+      }
+      const baseMinutes = workedMinutes($("defaultStartTime").value, $("defaultEndTime").value, $("defaultBreakTime").value);
+      let total = 0;
+
+      for (let dayNumber = 1; dayNumber <= lastDay; dayNumber += 1) {
+        const date = new Date(year, month, dayNumber);
+        const dateIso = toLocalDateInputValue(date);
+        if (isWeekendDate(date) || holidayMap.has(dateIso)) continue;
+        const record = stored[dateIso];
+        if (!record) total += baseMinutes;
+        else if (!isNonWorkingRecord(record)) total += workedMinutes(record.startTime, record.endTime, record.breakTime);
+      }
+      return total;
+    }
+    function monthlyHoursText(iso) {
+      return `${(monthlyEstimatedMinutes(iso) / 60).toFixed(1)}h`;
+    }
     function getSettings() {
       return Object.fromEntries(settingFields.map(id => [id, $(id).value]));
     }
@@ -103,6 +187,7 @@ const $ = (id) => document.getElementById(id);
         savedTodayValue: lastKnownTodayValue,
         savedAt: new Date().toISOString()
       }));
+      saveMonthlyHours();
     }
     function daysMatchBaseWeek() {
       if (daysData.length !== 7) return false;
@@ -386,7 +471,7 @@ const $ = (id) => document.getElementById(id);
             <div class="col-2"><label>開始</label><input type="time" value="${day.startTime}" data-i="${i}" data-key="startTime"></div>
             <div class="col-2"><label>終了</label><input type="time" value="${day.endTime}" data-i="${i}" data-key="endTime"></div>
             <div class="col-2"><label>休憩時間</label><input type="time" value="${day.breakTime || $('defaultBreakTime').value || '01:00'}" data-i="${i}" data-key="breakTime"></div>
-            <div class="col-3 overtime-field"><label>残業時間</label><div class="calculated-value">${overtimeText(day.overtimeMinutes)}</div></div>
+            <div class="col-3 overtime-field"><label>当月の見込み合計時間</label><div class="calculated-value">${monthlyHoursText(day.date)}</div></div>
             <div class="col-4"><label>PJ名</label><input value="${escapeHtml(day.projectName)}" data-i="${i}" data-key="projectName"></div>
             <div class="col-4"><label>常駐先企業名</label><input value="${escapeHtml(day.companyName)}" data-i="${i}" data-key="companyName"></div>
             <div class="col-2"><label>出社場所</label><input value="${escapeHtml(day.workPlace)}" data-i="${i}" data-key="workPlace"></div>
@@ -476,7 +561,7 @@ const $ = (id) => document.getElementById(id);
           lines.push(`②${day.projectName} / ${day.companyName} / ${day.workPlace}${day.workPlaceType}`);
           lines.push(`③${day.workContent}`);
           lines.push(`④${day.impression}`);
-          lines.push(`⑤${overtimeText(day.overtimeMinutes)}`);
+          lines.push(`⑤${monthlyHoursText(day.date)}`);
         } else {
           lines.push("①出退勤(in-out)");
           lines.push(`  ${mmddFromIso(day.date)}(${weekdayFromIso(day.date)}) ${day.startTime}～${day.endTime}`);
@@ -486,8 +571,8 @@ const $ = (id) => document.getElementById(id);
           lines.push(`  ${day.workContent}`);
           lines.push("④所感(現場の状況などを記載)");
           lines.push(`  ${day.impression}`);
-          lines.push("⑤残業");
-          lines.push(`  ${overtimeText(day.overtimeMinutes)}`);
+          lines.push("⑤当月の見込み合計時間");
+          lines.push(`  ${monthlyHoursText(day.date)}`);
         }
         lines.push("-------------------------------------------");
       }
@@ -624,6 +709,7 @@ const $ = (id) => document.getElementById(id);
       localStorage.removeItem("nippo-web-state-v6");
       localStorage.removeItem("nippo-web-state-v4");
       localStorage.removeItem("nippo-web-state-v3");
+      localStorage.removeItem(monthlyHoursStorageKey);
       loadState();
       renderDays();
     }
