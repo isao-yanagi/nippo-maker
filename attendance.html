@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>勤怠管理 | 日報生成</title>
+  <link rel="stylesheet" href="css/style.css?v=20261006-02" />
+</head>
+<body>
+  <header>
+    <div class="header-text">
+      <h1>勤怠管理</h1>
+      <div class="sub">今月・前月の出退勤と勤務時間を確認・編集できます。変更内容はこのブラウザに自動保存されます。</div>
+    </div>
+    <div class="header-actions">
+      <a class="link-button secondary" href="index.html">日報生成へ</a>
+    </div>
+  </header>
+
+  <main class="attendance-main">
+    <div id="attendanceMonths" class="attendance-months" aria-live="polite"></div>
+    <p class="attendance-note">実働合計は保存済みの勤務日の合計です。想定合計は、入力済みの日は実働時間、未入力の平日は初期設定の基本勤務時間として計算します。土日・祝日・全休は除外します。</p>
+  </main>
+
+  <div class="toast" id="toast">保存しました</div>
+  <script src="js/attendance.js?v=20261006-01"></script>
+</body>
+</html>
